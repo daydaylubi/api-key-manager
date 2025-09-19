@@ -1,0 +1,14 @@
+# 模型 Token 配置
+[models.a.personal]
+token = "a-xxx"
+
+[models.a.company]
+token = "a-yyy"
+
+[models.b.personal]
+token = "b-xxx"
+
+[models.b.company]
+token = "b-yyy"
+
+

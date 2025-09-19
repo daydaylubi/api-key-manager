@@ -1,0 +1,39 @@
+# API Key Manager 配置示例文件
+
+# 产品配置定义
+[products.claude_code.models.a]
+name = "A模型"
+description = "Claude Code A模型配置字段及相应默认值"
+default_config = {
+    ANTHROPIC_BASE_URL = "https://api.anthropic.com"
+    ANTHROPIC_SMALL_FAST_MODEL = "claude-3-haiku-20240307"
+    ANTHROPIC_MODEL = "claude-3-sonnet-20240229"
+}
+token_field = "ANTHROPIC_AUTH_TOKEN"
+
+[products.claude_code.models.b]
+name = "B模型"
+description = "Claude Code B模型配置字段及相应默认值"
+default_config = {
+    ANTHROPIC_BASE_URL = "https://api.anthropic.com"
+}
+token_field = "ANTHROPIC_AUTH_TOKEN"
+
+[products.codex.models.a]
+name = "A模型"
+description = "Codex A模型配置字段及相应默认值"
+default_config = {
+    OPENAI_BASE_URL = "https://api.a.com/v1"
+    OPENAI_MODEL = "gpt-4"
+    OPENAI_ORGANIZATION = "org-xxx"
+}
+token_field = "OPENAI_API_KEY"
+
+[products.codex.models.b]
+name = "B模型 "
+description = "Codex B模型配置字段及相应默认值"
+default_config = {
+    OPENAI_BASE_URL = "https://api.b.com/v1"
+    AZURE_OPENAI_DEPLOYMENT_NAME = "gpt-4"
+}
+token_field = "AZURE_OPENAI_API_KEY"
