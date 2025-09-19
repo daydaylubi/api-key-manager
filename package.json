@@ -1,0 +1,34 @@
+{
+  "name": "api-key-manager",
+  "version": "1.0.0",
+  "description": "A desktop tool to select model/product accounts and safely apply API keys to your shell environment.",
+  "author": "API Key Manager Contributors",
+  "main": "dist/main/main.js",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:main\"",
+    "dev:renderer": "vite",
+    "dev:main": "cross-env NODE_ENV=development electron src/main/main.js",
+    "build": "npm run build:renderer && npm run build:main",
+    "build:renderer": "vite build",
+    "build:main": "mkdir -p dist/main && cp -R src/main/. dist/main/",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "toml": "^3.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "concurrently": "^8.2.0",
+    "cross-env": "^7.0.3",
+    "electron": "^27.0.0",
+    "electron-builder": "^24.0.0",
+    "vite": "^4.4.0"
+  }
+} 

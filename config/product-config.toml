@@ -1,0 +1,19 @@
+[products]
+
+[products.openai]
+name = "OpenAI"
+
+[products.openai.models.gpt-4o]
+name = "GPT-4o"
+token_field = "OPENAI_API_KEY"
+[products.openai.models.gpt-4o.default_config]
+OPENAI_BASE_URL = "https://api.openai.com/v1"
+
+[products.anthropic]
+name = "Anthropic"
+
+[products.anthropic.models.claude-3-5]
+name = "Claude 3.5"
+token_field = "ANTHROPIC_API_KEY"
+[products.anthropic.models.claude-3-5.default_config]
+ANTHROPIC_BASE_URL = "https://api.anthropic.com" 

@@ -1,0 +1,210 @@
+:root {
+  --bg: #0b1020;
+  --panel: #121832;
+  --panel-elev: #19224a;
+  --text: #e6e8f2;
+  --muted: #aab0c0;
+  --primary: #4f7cff;
+  --primary-600: #3e66d6;
+  --danger: #e25555;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 10px 30px rgba(17, 23, 50, 0.35);
+  --border: 1px solid rgba(255,255,255,0.08);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: radial-gradient(1200px 800px at 80% -10%, rgba(79,124,255,0.12), transparent 60%),
+              radial-gradient(1000px 600px at -10% 110%, rgba(95,209,164,0.12), transparent 60%),
+              var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.app-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 24px 40px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4f7cff, #7a93ff);
+  box-shadow: var(--shadow);
+}
+
+.brand-title {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.subtle {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.panel {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)), var(--panel);
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 18px;
+}
+
+@media (max-width: 960px) {
+  .content { grid-template-columns: 1fr; }
+}
+
+.section {
+  padding: 18px;
+}
+
+.section-title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .form-grid { grid-template-columns: 1fr; }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.select, .button {
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: var(--border);
+  background: var(--panel-elev);
+  color: var(--text);
+}
+
+.select {
+  padding: 0 12px;
+  outline: none;
+}
+
+.actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+}
+
+.button {
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.button.primary {
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01)), var(--primary);
+  border: 1px solid rgba(79,124,255,0.45);
+}
+
+.button.primary:hover { background: var(--primary-600); }
+.button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.button.secondary {
+  background: var(--panel-elev);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.button.ghost {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.16);
+}
+
+.preview {
+  min-height: 180px;
+  padding: 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background: var(--panel-elev);
+  border-radius: var(--radius-sm);
+  border: var(--border);
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.kv-row {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.kv-row:nth-child(odd) { background: rgba(255,255,255,0.02); }
+.key { color: #c2c8ff; }
+.value { color: #b9f2d9; }
+
+.footer {
+  margin-top: 16px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: var(--border);
+  color: var(--muted);
+}
+
+.confirm-shell {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 24px 20px 34px;
+}
+
+.confirm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.confirm-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+} 
