@@ -6,23 +6,23 @@ function useApi() {
   return useMemo(() => window.api, []);
 }
 
-function ProductSelector({ value, onChange, products, className }) {
+function ProviderSelector({ value, onChange, providers, className }) {
   return (
     <select className={className} value={value || ''} onChange={(e) => onChange(e.target.value)}>
-      <option value="" disabled>选择产品</option>
-      {products.map((p) => (
-        <option key={p} value={p}>{p}</option>
+      <option value="" disabled>选择模型提供商</option>
+      {providers.map((p) => (
+        <option key={p.key} value={p.key}>{p.name}</option>
       ))}
     </select>
   );
 }
 
-function ModelSelector({ value, onChange, models, className }) {
+function ProductSelector({ value, onChange, products, className }) {
   return (
     <select className={className} value={value || ''} onChange={(e) => onChange(e.target.value)}>
-      <option value="" disabled>选择模型</option>
-      {models.map((m) => (
-        <option key={m} value={m}>{m}</option>
+      <option value="" disabled>选择产品</option>
+      {products.map((p) => (
+        <option key={p.key} value={p.key}>{p.name}</option>
       ))}
     </select>
   );
@@ -33,7 +33,7 @@ function AccountSelector({ value, onChange, accounts, className }) {
     <select className={className} value={value || ''} onChange={(e) => onChange(e.target.value)}>
       <option value="" disabled>选择账号</option>
       {accounts.map((a) => (
-        <option key={a} value={a}>{a}</option>
+        <option key={a.key} value={a.key}>{a.name}</option>
       ))}
     </select>
   );
@@ -55,41 +55,41 @@ function ConfigPreview({ env }) {
 
 function HomePage({ onConfirm }) {
   const api = useApi();
+  const [providers, setProviders] = useState([]);
   const [products, setProducts] = useState([]);
-  const [models, setModels] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [provider, setProvider] = useState('');
   const [product, setProduct] = useState('');
-  const [model, setModel] = useState('');
   const [account, setAccount] = useState('');
   const [env, setEnv] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.getProducts().then(setProducts).catch((e) => setError(String(e)));
+    api.getModelProviders().then(setProviders).catch((e) => setError(String(e)));
   }, []);
 
   useEffect(() => {
-    if (!product) return;
-    api.getModels(product).then(setModels).catch((e) => setError(String(e)));
-    setModel('');
+    if (!provider) return;
+    api.getProductsByProvider(provider).then(setProducts).catch((e) => setError(String(e)));
+    setProduct('');
     setAccount('');
     setAccounts([]);
     setEnv(null);
-  }, [product]);
+  }, [provider]);
 
   useEffect(() => {
-    if (!model) return;
-    api.getAccountsByModel(model).then(setAccounts).catch((e) => setError(String(e)));
+    if (!provider) return;
+    api.getAccountsByProvider(provider).then(setAccounts).catch((e) => setError(String(e)));
     setAccount('');
     setEnv(null);
-  }, [model]);
+  }, [provider]);
 
   useEffect(() => {
-    if (!product || !model || !account) return;
-    api.buildEnv(product, model, account)
+    if (!provider || !product || !account) return;
+    api.buildEnv(provider, product, account)
       .then(setEnv)
       .catch((e) => setError(String(e)));
-  }, [product, model, account]);
+  }, [provider, product, account]);
 
   return (
     <div className="app-shell">
@@ -108,12 +108,12 @@ function HomePage({ onConfirm }) {
           <div className="section-title">选择配置</div>
           <div className="form-grid">
             <div className="field">
-              <div className="label">产品</div>
-              <ProductSelector value={product} onChange={setProduct} products={products} className="select" />
+              <div className="label">模型提供商</div>
+              <ProviderSelector value={provider} onChange={setProvider} providers={providers} className="select" />
             </div>
             <div className="field">
-              <div className="label">模型</div>
-              <ModelSelector value={model} onChange={setModel} models={models} className="select" />
+              <div className="label">产品</div>
+              <ProductSelector value={product} onChange={setProduct} products={products} className="select" />
             </div>
             <div className="field">
               <div className="label">账号</div>
@@ -135,7 +135,7 @@ function HomePage({ onConfirm }) {
                 </div>
               ))
             ) : (
-              <span className="subtle">请选择产品、模型和账号以预览</span>
+              <span className="subtle">请选择模型提供商、产品和账号以预览</span>
             )}
           </div>
         </div>
@@ -183,4 +183,4 @@ function AppRoot() {
   return <HomePage onConfirm={setPendingEnv} />;
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<AppRoot />); 
+ReactDOM.createRoot(document.getElementById('root')).render(<AppRoot />);

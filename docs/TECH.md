@@ -36,13 +36,13 @@ api-key-manager/
 ├── src/
 │   ├── main/                    # Electron主进程
 │   │   ├── main.js             # 应用入口
-│   │   ├── config-manager.js   # 配置管理模块（读取 product/token 配置）
+│   │   ├── config-manager.js   # 配置管理模块（读取 config.toml）
 │   │   ├── env-manager.js      # 环境变量管理模块
 │   │   └── ipc-handlers.js     # IPC通信处理
 │   ├── renderer/               # React渲染进程
 │   │   ├── components/         # UI组件
+│   │   │   ├── ProviderSelector.jsx
 │   │   │   ├── ProductSelector.jsx
-│   │   │   ├── ModelSelector.jsx
 │   │   │   ├── AccountSelector.jsx
 │   │   │   └── ConfigPreview.jsx
 │   │   ├── pages/              # 页面组件
@@ -57,9 +57,8 @@ api-key-manager/
 │   └── shared/                 # 共享代码
 │       ├── constants.js        # 常量定义
 │       └── utils.js           # 工具函数
-├── config/                     # 配置文件模板（可选）
-│   ├── product-config.toml    # 运行时使用（用户自行拷贝示例生成）
-│   └── token-config.toml      # 运行时使用（用户自行拷贝示例生成）
+├── docs/                       # 文档目录
+│   └── config-example.toml    # 配置文件示例
 ├── public/                     # 静态资源
 ├── dist/                      # 构建输出
 ├── package.json
@@ -71,77 +70,180 @@ api-key-manager/
 
 ### 3.1 配置管理模块 (config-manager.js)
 
-- 拆分为两个只读配置源：
-  - `product-config.toml`：定义产品/模型的默认环境变量及 `token_field`
-  - `token-config.toml`：定义各模型下的账号及其 `token`
-- 不再支持新增/编辑账号；仅提供读取和合并能力。
+- 使用单个配置文件：`~/.api-key-manager/config.toml`
+- 配置文件包含模型提供商基本信息、账号配置和各产品的环境变量配置
+- 应用启动时自动在用户目录生成 config-example.toml 示例文件
+- 如果用户配置文件不存在，会提示用户参考示例文件进行配置
+- 支持多账号配置，每个模型提供商可以有多个账号
 
 ```javascript
 const fs = require('fs');
 const path = require('path');
 const toml = require('toml');
+const os = require('os');
 
 class ConfigManager {
   constructor() {
-    this.configDir = path.join(require('os').homedir(), '.api-key-manager');
-    this.productConfigFile = this.resolveConfigPath('product-config.toml');
-    this.tokenConfigFile = this.resolveConfigPath('token-config.toml');
+    this.configDir = path.join(os.homedir(), '.api-key-manager');
+    this.configFile = path.join(this.configDir, 'config.toml');
+    this.exampleConfigFile = path.join(this.configDir, 'config-example.toml');
+    this.sourceExampleFile = path.join(__dirname, '../../docs/config-example.toml');
   }
 
-  resolveConfigPath(fileName) {
-    // 优先使用用户目录下配置，其次回退到应用内 config 目录
-    const userPath = path.join(this.configDir, fileName);
-    if (fs.existsSync(userPath)) return userPath;
-    const appPath = path.join(__dirname, '../../config', fileName);
-    return appPath;
-  }
-
-  async init() {
-    if (!fs.existsSync(this.configDir)) {
-      fs.mkdirSync(this.configDir, { recursive: true });
+  // 生成示例配置文件
+  async generateExampleConfig() {
+    try {
+      const exampleContent = fs.readFileSync(this.sourceExampleFile, 'utf8');
+      fs.writeFileSync(this.exampleConfigFile, exampleContent);
+      console.log(`示例配置文件已生成: ${this.exampleConfigFile}`);
+    } catch (error) {
+      console.error(`生成示例配置文件失败: ${error.message}`);
+      throw new Error(`无法生成示例配置文件: ${error.message}`);
     }
   }
 
+  // 检查配置文件是否存在
+  async checkConfigExists() {
+    if (!fs.existsSync(this.configFile)) {
+      throw new Error(`配置文件不存在: ${this.configFile}\n请参考 ${this.exampleConfigFile} 创建配置文件`);
+    }
+    return true;
+  }
+
+  async init() {
+    // 确保配置目录存在
+    if (!fs.existsSync(this.configDir)) {
+      fs.mkdirSync(this.configDir, { recursive: true });
+    }
+    
+    // 生成示例配置文件（如果不存在）
+    if (!fs.existsSync(this.exampleConfigFile)) {
+      await this.generateExampleConfig();
+    }
+    
+    // 检查用户配置文件是否存在
+    await this.checkConfigExists();
+  }
+
+  async getModelProviders() {
+    const config = this.readToml(this.configFile);
+    const providers = [];
+    
+    Object.keys(config.models || {}).forEach(providerKey => {
+      const providerConfig = config.models[providerKey];
+      if (providerConfig.name) {
+        providers.push({
+          key: providerKey,
+          name: providerConfig.name
+        });
+      }
+    });
+    
+    return providers;
+  }
+
+  async getProductsByProvider(providerKey) {
+    const config = this.readToml(this.configFile);
+    const providerConfig = config.models?.[providerKey];
+    
+    if (!providerConfig || !providerConfig.products) {
+      return [];
+    }
+    
+    const products = [];
+    Object.keys(providerConfig.products).forEach(productKey => {
+      products.push({
+        key: productKey,
+        name: productKey
+      });
+    });
+    
+    return products;
+  }
+
+  async getAccountsByProvider(providerKey) {
+    const config = this.readToml(this.configFile);
+    const providerConfig = config.models?.[providerKey];
+    
+    if (!providerConfig || !providerConfig.accounts) {
+      return [];
+    }
+    
+    const accounts = [];
+    Object.keys(providerConfig.accounts).forEach(accountKey => {
+      const account = providerConfig.accounts[accountKey];
+      if (account.name && account.token) {
+        accounts.push({
+          key: accountKey,
+          name: account.name,
+          token: account.token
+        });
+      }
+    });
+    
+    return accounts;
+  }
+
+  async getProviderInfo(providerKey) {
+    const config = this.readToml(this.configFile);
+    return config.models?.[providerKey];
+  }
+
+  async getProviderProductConfig(providerKey, productKey) {
+    const config = this.readToml(this.configFile);
+    return config.models?.[providerKey]?.products?.[productKey];
+  }
+
+  // 读取TOML配置文件
   readToml(filePath) {
-    const content = fs.readFileSync(filePath, 'utf8');
-    return toml.parse(content);
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      return toml.parse(content);
+    } catch (error) {
+      console.error(`读取配置文件失败: ${filePath}`, error);
+      throw new Error(`配置文件格式错误: ${error.message}`);
+    }
   }
 
-  async getProducts() {
-    const productConfig = this.readToml(this.productConfigFile);
-    return Object.keys(productConfig.products || {});
-  }
+  /**
+   * 构建环境变量配置
+   * @param {string} providerKey - 模型提供商key
+   * @param {string} productKey - 产品key
+   * @param {string} accountKey - 账号key
+   * @returns {Object} 环境变量键值对
+   * @throws {Error} 当配置不存在或格式错误时抛出异常
+   */
+  async buildEnv(providerKey, productKey, accountKey) {
+    if (!providerKey || !productKey || !accountKey) {
+      throw new Error('模型提供商、产品和账号名称不能为空');
+    }
 
-  async getModels(product) {
-    const productConfig = this.readToml(this.productConfigFile);
-    return Object.keys(productConfig.products?.[product]?.models || {});
-  }
+    try {
+      const config = this.readToml(this.configFile);
+      const providerConfig = config.models?.[providerKey];
+      const productConfig = providerConfig?.products?.[productKey];
+      const accountConfig = providerConfig?.accounts?.[accountKey];
 
-  async getAccountsByModel(model) {
-    const tokenConfig = this.readToml(this.tokenConfigFile);
-    return Object.keys(tokenConfig.models?.[model] || {}); // e.g. ["personal", "company"]
-  }
+      if (!providerConfig) throw new Error(`模型提供商 ${providerKey} 的配置不存在`);
+      if (!productConfig) throw new Error(`产品 ${productKey} 的配置不存在`);
+      if (!accountConfig) throw new Error(`账号 ${accountKey} 的配置不存在`);
+      if (!accountConfig.token) throw new Error(`账号 ${accountKey} 的token未配置`);
 
-  async getModelConfig(product, model) {
-    const productConfig = this.readToml(this.productConfigFile);
-    return productConfig.products?.[product]?.models?.[model];
-  }
+      const defaultEnv = productConfig.default_config || {};
+      const tokenField = productConfig.token_field;
 
-  async buildEnv(product, model, accountName) {
-    const modelConfig = await this.getModelConfig(product, model);
-    const tokenConfig = this.readToml(this.tokenConfigFile);
-    const token = tokenConfig.models?.[model]?.[accountName]?.token;
+      if (!tokenField) {
+        throw new Error(`产品 ${productKey} 的token_field未配置`);
+      }
 
-    if (!modelConfig) throw new Error('模型配置不存在');
-    if (!token) throw new Error('账号或token不存在');
-
-    const defaultEnv = modelConfig.default_config || {};
-    const tokenField = modelConfig.token_field; // 字符串
-
-    return {
-      ...defaultEnv,
-      [tokenField]: token
-    };
+      return {
+        ...defaultEnv,
+        [tokenField]: accountConfig.token
+      };
+    } catch (error) {
+      console.error('构建环境变量失败:', error);
+      throw new Error(`构建环境变量失败: ${error.message}`);
+    }
   }
 }
 ```
@@ -149,35 +251,64 @@ class ConfigManager {
 ### 3.2 环境变量管理模块 (env-manager.js)
 
 - 将 `ConfigManager.buildEnv` 构建的环境变量键值对应用到当前 shell，并写入 `~/.api-key-manager/.env`。
-- 不修改：命令执行与写入 `.env` 的逻辑；仅强调输入为“最终合并后的环境变量”。
+- 支持多账号环境变量管理，自动清理之前的配置
 
 ```javascript
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 class EnvManager {
   constructor() {
-    this.envFile = path.join(require('os').homedir(), '.api-key-manager', '.env');
+    this.envFile = path.join(os.homedir(), '.api-key-manager', '.env');
+    this.blockStart = '# >>> api-key-manager >>>';
+    this.blockEnd = '# <<< api-key-manager <<<'
   }
 
   async applyEnv(envMap) {
-    const commands = this.generateEnvCommands(envMap);
+    const previousKeys = this.getPreviousKeys();
+    const commands = this.generateEnvCommands(previousKeys, envMap);
     await this.execute(commands);
+    await this.updateShellConfig(envMap);
     await this.saveToEnvFile(envMap);
     return { success: true };
   }
 
-  generateEnvCommands(envMap) {
-    const exports = Object.entries(envMap).map(([k, v]) => `export ${k}="${v}"`).join('\n');
-    const shellConfig = this.getShellConfigFile();
-    return [
-      Object.entries(envMap).map(([k, v]) => `export ${k}="${v}"`).join(' && '),
-      `echo '${exports}' >> ${shellConfig}`
-    ];
+  getPreviousKeys() {
+    try {
+      if (!fs.existsSync(this.envFile)) return [];
+      const content = fs.readFileSync(this.envFile, 'utf8');
+      const keys = content
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => line.split('=')[0])
+        .filter(Boolean);
+      return Array.from(new Set(keys));
+    } catch {
+      return [];
+    }
+  }
+
+  generateEnvCommands(previousKeys, nextEnvMap) {
+    const unsets = (previousKeys || [])
+      .filter((k) => k && !(k in nextEnvMap))
+      .map((k) => `unset ${k}`)
+      .join(' && ');
+
+    const exports = Object.entries(nextEnvMap)
+      .map(([k, v]) => `export ${k}="${String(v).replace(/"/g, '\\"')}"`)
+      .join(' && ');
+
+    const cmds = [];
+    if (unsets) cmds.push(unsets);
+    if (exports) cmds.push(exports);
+    return cmds;
   }
 
   async execute(commands) {
+    if (!commands.length) return;
     return new Promise((resolve, reject) => {
       exec(commands.join(' && '), (error, stdout) => error ? reject(error) : resolve(stdout));
     });
@@ -190,9 +321,58 @@ class EnvManager {
 
   getShellConfigFile() {
     const shell = process.env.SHELL || '/bin/zsh';
-    if (shell.includes('zsh')) return path.join(require('os').homedir(), '.zshrc');
-    if (shell.includes('bash')) return path.join(require('os').homedir(), '.bashrc');
-    return path.join(require('os').homedir(), '.profile');
+    if (shell.includes('zsh')) return path.join(os.homedir(), '.zshrc');
+    if (shell.includes('bash')) return path.join(os.homedir(), '.bashrc');
+    return path.join(os.homedir(), '.profile');
+  }
+
+  async updateShellConfig(envMap) {
+    const shellConfig = this.getShellConfigFile();
+    const exportsText = Object.entries(envMap)
+      .map(([k, v]) => `export ${k}="${String(v).replace(/\"/g, '"').replace(/"/g, '\\"')}"`)
+      .join('\n');
+
+    const block = [
+      this.blockStart,
+      '# Managed by API Key Manager. Do not edit between these markers.',
+      exportsText,
+      this.blockEnd,
+      ''
+    ].join('\n');
+
+    let original = '';
+    try {
+      if (fs.existsSync(shellConfig)) {
+        original = fs.readFileSync(shellConfig, 'utf8');
+      }
+    } catch (error) {
+      console.error('Error reading shell config file:', error);
+      throw new Error(`Failed to read shell config file: ${error.message}`);
+    }
+
+    // More robust regex pattern that handles various line endings and whitespace
+    const startEsc = this.blockStart.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const endEsc = this.blockEnd.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    // Match the entire block with any characters (including newlines) in between
+    const blockRegexGlobal = new RegExp(`\n?${startEsc}[^]*?${endEsc}\n?`, 'g');
+
+    // Remove any existing blocks
+    let next = original.replace(blockRegexGlobal, '').trim();
+    
+    // Add new block with proper spacing
+    if (next) {
+      next = `${next}\n\n${block}`;
+    } else {
+      next = block;
+    }
+
+    try {
+      // Ensure the file ends with a single newline
+      fs.writeFileSync(shellConfig, `${next}\n`, { encoding: 'utf8' });
+    } catch (error) {
+      console.error('Error writing to shell config file:', error);
+      throw new Error(`Failed to update shell config file: ${error.message}`);
+    }
   }
 }
 ```
@@ -245,7 +425,9 @@ class EnvManager {
   },
   "files": [
     "dist/**/*",
-    "node_modules/**/*"
+    "docs/**/*",
+    "node_modules/**/*",
+    "package.json"
   ],
   "mac": {
     "category": "public.app-category.developer-tools",
@@ -304,7 +486,7 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile('dist/renderer/index.html');
+    mainWindow.loadFile(path.join(__dirname, '../../dist/renderer/index.html'));
   }
 
   // 初始化IPC处理器
@@ -339,12 +521,49 @@ app.on('activate', () => {
 ### 6.3 安装包
 - macOS: `.dmg` 文件
 
-## 7. 安全考虑
+## 7. 配置文件管理
 
-### 7.1 API密钥安全
+### 7.1 配置文件位置
+- 用户配置文件：`~/.api-key-manager/config.toml`
+- 示例配置文件：`docs/config-example.toml`（打包时包含）
+
+### 7.2 首次运行流程
+1. 应用启动时检查 `~/.api-key-manager/config.toml` 是否存在
+2. 如果不存在，从 `docs/config-example.toml` 复制生成
+3. 用户可编辑生成的配置文件来设置自己的模型和token
+
+### 7.3 配置文件结构
+```toml
+[models.modelscope]
+name = "ModelScope"
+
+# 账号配置
+[models.modelscope.accounts]
+[models.modelscope.accounts.personal]
+name = "个人账号"
+token = "ms-your-actual-token"
+[models.modelscope.accounts.company]
+name = "公司账号"
+token = "ms-company-token"
+
+# 产品配置
+[models.modelscope.products.claude_code]
+description = "ModelScope 针对 claude_code 需要配置的环境变量"
+default_config = {
+    ANTHROPIC_BASE_URL = "https://api-inference.modelscope.cn",
+    ANTHROPIC_SMALL_FAST_MODEL = "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+    ANTHROPIC_MODEL = "Qwen/Qwen3-Coder-480B-A35B-Instruct"
+}
+token_field = "ANTHROPIC_AUTH_TOKEN"
+```
+
+## 8. 安全考虑
+
+### 8.1 API密钥安全
 - 不传输到外部服务器
+- 仅存储在用户本地配置文件
 
-### 7.2 权限管理
+### 8.2 权限管理
 - 仅读写用户目录
 - 不请求系统级权限
 - 环境变量修改需要用户确认

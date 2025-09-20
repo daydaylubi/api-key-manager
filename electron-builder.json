@@ -6,7 +6,7 @@
   },
   "files": [
     "dist/**/*",
-    "config/**/*",
+    "docs/**/*",
     "node_modules/**/*",
     "package.json"
   ],
@@ -20,4 +20,4 @@
   "linux": {
     "target": "AppImage"
   }
-} 
+}

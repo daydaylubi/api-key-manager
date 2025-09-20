@@ -16,24 +16,24 @@ class IPCHandlers {
   }
 
   init() {
-    ipcMain.handle('config:getProducts', async () => {
+    ipcMain.handle('config:getModelProviders', async () => {
       await this.configManager.init();
-      return this.configManager.getProducts();
+      return this.configManager.getModelProviders();
     });
 
-    ipcMain.handle('config:getModels', async (_event, product) => {
+    ipcMain.handle('config:getProductsByProvider', async (_event, providerKey) => {
       await this.configManager.init();
-      return this.configManager.getModels(product);
+      return this.configManager.getProductsByProvider(providerKey);
     });
 
-    ipcMain.handle('config:getAccountsByModel', async (_event, model) => {
+    ipcMain.handle('config:getAccountsByProvider', async (_event, providerKey) => {
       await this.configManager.init();
-      return this.configManager.getAccountsByModel(model);
+      return this.configManager.getAccountsByProvider(providerKey);
     });
 
-    ipcMain.handle('config:buildEnv', async (_event, { product, model, accountName }) => {
+    ipcMain.handle('config:buildEnv', async (_event, { providerKey, productKey, accountKey }) => {
       await this.configManager.init();
-      return this.configManager.buildEnv(product, model, accountName);
+      return this.configManager.buildEnv(providerKey, productKey, accountKey);
     });
 
     ipcMain.handle('env:apply', async (_event, envMap) => {
@@ -42,4 +42,4 @@ class IPCHandlers {
   }
 }
 
-module.exports = IPCHandlers; 
+module.exports = IPCHandlers;

@@ -32,23 +32,23 @@ API Key Manager 是一个本地API密钥管理平台，帮助开发者统一管�
 
 ### 3.1 核心功能
 
-#### 3.1.1 产品选择
-- 支持选择不同产品类型（Claude Code、Codex等）
-- 首页展示产品选择界面
+#### 3.1.1 模型提供商选择
+- 从 `config.toml` 读取模型提供商配置
+- 支持选择不同模型提供商（ModelScope、BigModel等）
+- 首页展示模型提供商选择界面
 
-#### 3.1.2 模型选择
-- 支持选择底层模型（Claude、OpenAI、Others等）
-- 根据产品类型显示可用模型
+#### 3.1.2 产品选择
+- 从 `config.toml` 读取模型提供商支持的产品列表
+- 根据选择的模型提供商显示支持的产品类型（Claude Code、Codex等）
+- 仅显示该模型提供商支持的产品
 
 #### 3.1.3 账号选择
-- 从 `token-config.toml` 读取账号列表（由示例拷贝生成）
-- 支持为同一模型显示多个预置账号（如 personal/company）
-- 仅支持选择与应用，不提供新增/编辑/删除
+- 从 `config.toml` 读取模型提供商下的账号列表
+- 支持选择预置的账号（如个人账号、公司账号）
+- 仅支持选择与应用，不提供新增/编辑/删除，如需新增账号请修改 `config.toml`
 
 #### 3.1.4 配置推导
-- 根据产品+模型组合自动推导配置项
-- 预置常用配置的默认值
-- 不再需要用户手动输入密钥等必要信息（从 `token-config.toml` 获取）
+- 根据模型提供商+产品+账号组合自动推导配置项
 
 #### 3.1.5 环境变量管理
 - 自动设置系统环境变量
@@ -58,102 +58,98 @@ API Key Manager 是一个本地API密钥管理平台，帮助开发者统一管�
 ### 3.2 配置管理
 
 #### 3.2.1 配置文件
-- 使用两个 TOML 配置文件：
-  - `product-config.toml`：定义各产品、模型所需的环境变量字段和默认值（参考： `docs/product-config-example.toml`）
-  - `token-config.toml`：定义各模型下的账号及其 token 值（参考： `token-config-example.toml` ）
-- 产品配置中使用 `default_config` 定义环境变量默认值，使用 `token_field` 声明该模型所需的密钥字段名（如 `ANTHROPIC_AUTH_TOKEN`、`OPENAI_API_KEY` 等）
-- 账号配置仅包含每个模型下各账号的 `token` 值
+- 使用单个 TOML 配置文件：`config.toml`（参考：`docs/config-example.toml`）
+- 配置文件包含：
+  - 模型提供商基本信息
+  - 模型提供商下的账号配置（名称和token）
+  - 各产品的环境变量默认值配置
+  - token字段映射关系
 
 #### 3.2.2 配置结构
 ```toml
-# product-config.toml
-[products.claude_code.models.a]
-name = "A模型"
-description = "Claude Code A模型配置字段及相应默认值"
+# config.toml
+[models.modelscope]
+name = "ModelScope"
+
+# 账号配置
+[models.modelscope.accounts]
+[models.modelscope.accounts.personal]
+name = "个人账号"
+token = "ms-xxx"
+[models.modelscope.accounts.company]
+name = "公司账号"
+token = "ms-yyy"
+
+# ModelScope 针对 Claude Code 的配置
+[models.modelscope.products.claude_code]
+description = "modelscope 针对 claude_code 需要配置的环境变量"
 default_config = {
-    ANTHROPIC_BASE_URL = "https://api.anthropic.com",
-    ANTHROPIC_SMALL_FAST_MODEL = "claude-3-haiku-20240307",
-    ANTHROPIC_MODEL = "claude-3-sonnet-20240229"
+    ANTHROPIC_BASE_URL = "https://api-inference.modelscope.cn",
+    ANTHROPIC_SMALL_FAST_MODEL = "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+    ANTHROPIC_MODEL = "Qwen/Qwen3-Coder-480B-A35B-Instruct"
 }
-# 该模型所需 token 字段名
 token_field = "ANTHROPIC_AUTH_TOKEN"
 
-[products.codex.models.a]
-name = "A模型"
-description = "Codex A模型配置字段及相应默认值"
+# ModelScope 针对 Codex 的配置
+[models.modelscope.products.codex]
+description = "modelscope 针对 codex 需要配置的环境变量"
 default_config = {
-    OPENAI_BASE_URL = "https://api.a.com/v1",
-    OPENAI_MODEL = "gpt-4",
-    OPENAI_ORGANIZATION = "org-xxx"
+    CODEX_BASE_URL = "https://api-inference.modelscope.cn",
+    CODEX_MODEL = "Qwen/Qwen3-Coder-480B-A35B-Instruct"
 }
-# 该模型所需 token 字段名
-token_field = "OPENAI_API_KEY"
-
-# token-config.toml
-[models.a.personal]
-token = "a-xxx"
-
-[models.a.company]
-token = "a-yyy"
-
-[models.b.personal]
-token = "b-xxx"
-
-[models.b.company]
-token = "b-yyy"
+token_field = "CODEX_AUTH_TOKEN"
 ```
 
 ## 4. 用户流程
 
 ### 4.1 首次使用流程
 
-1. 启动应用 → 显示产品选择页面
-2. 选择产品 → 显示模型选择页面
-3. 选择模型 → 显示账号列表（来自 `token-config.toml`）
-4. 选择账号 → 确认并应用配置
-5. 应用成功 → 环境变量生效
+1. 启动应用 → 显示模型提供商选择页面（来自 `config.toml`）
+2. 选择模型提供商 → 显示产品选择页面（来自 `config.toml`）
+3. 选择产品 → 显示账号选择页面（来自 `config.toml`）
+4. 选择账号 → 显示该模型+产品+账号的配置信息（来自 `config.toml`）
+5. 确认配置 → 应用配置
+6. 应用成功 → 环境变量生效
 
 ### 4.2 日常使用流程
 
-1. 启动应用 → 显示产品选择页面
-2. 选择产品 → 显示模型选择页面
-3. 选择模型 → 显示账号列表
+1. 启动应用 → 显示模型提供商选择页面
+2. 选择模型提供商 → 显示产品选择页面
+3. 选择产品 → 显示账号选择页面
 4. 选择账号 → 确认并应用配置
 
 ## 5. 界面设计
 
-### 5.1 首页 - 产品选择
+### 5.1 首页 - 模型提供商选择
 ```
 ┌─────────────────────────────────────┐
 │           API Key Manager           │
 │                                     │
 │    ┌─────────────┐  ┌─────────────┐ │
-│    │ Claude Code │  │    Codex    │ │
+│    │ ModelScope  │  │  BigModel   │ │
 │    └─────────────┘  └─────────────┘ │
 └─────────────────────────────────────┘
 ```
 
-### 5.2 模型选择页面
+### 5.2 产品选择页面
 ```
 ┌─────────────────────────────────────┐
-│  Claude Code - 选择模型             │
+│  ModelScope - 选择产品              │
 │                                     │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ │
-│  │ Claude  │ │ OpenAI  │ │ Others  │ │
-│  └─────────┘ └─────────┘ └─────────┘ │
+│  ┌─────────────┐ ┌─────────────┐     │
+│  │ Claude Code │ │    Codex    │     │
+│  └─────────────┘ └─────────────┘     │
 └─────────────────────────────────────┘
 ```
 
 ### 5.3 账号选择页面
 ```
 ┌─────────────────────────────────────┐
-│  Claude Code + Claude - 选择账号    │
+│  Claude Code - 选择账号             │
 │                                     │
-│  ┌─────────────────────────────────┐ │
-│  │ 账号1 (个人)                    │ │
-│  │ 账号2 (公司)                    │ │
-│  │ 账号3 (测试)                    │ │
-│  └─────────────────────────────────┘ │
+│  ┌─────────────┐ ┌─────────────┐     │
+│  │   个人账号   │ │   公司账号   │     │
+│  └─────────────┘ └─────────────┘     │
 └─────────────────────────────────────┘
 ```
 
@@ -162,8 +158,8 @@ token = "b-yyy"
 ┌─────────────────────────────────────┐
 │  确认应用配置                       │
 │                                     │
+│  模型提供商: ModelScope             │
 │  产品: Claude Code                  │
-│  模型: A模型                        │
 │  账号: 个人账号                     │
 │                                     │
 │  将设置以下环境变量:                │
