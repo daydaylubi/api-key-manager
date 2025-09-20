@@ -23,6 +23,7 @@ token = "ms-yyy"
 # --------------------------------------------------
 [models.modelscope.products]
 [models.modelscope.products.claude_code]
+name = "Claude Code"
 description = "ModelScope 针对 claude_code 需要配置的环境变量"
 token_field = "ANTHROPIC_AUTH_TOKEN"
 [models.modelscope.products.claude_code.default_config]
@@ -30,6 +31,7 @@ ANTHROPIC_BASE_URL = "https://api-inference.modelscope.cn"
 ANTHROPIC_SMALL_FAST_MODEL = "Qwen/Qwen3-Coder-480B-A35B-Instruct"
 ANTHROPIC_MODEL = "Qwen/Qwen3-Coder-480B-A35B-Instruct"
 [models.modelscope.products.codex]
+name = "Codex"
 description = "ModelScope 针对 codex 需要配置的环境变量"
 token_field = "CODEX_AUTH_TOKEN"
 [models.modelscope.products.codex.default_config]

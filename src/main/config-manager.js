@@ -104,10 +104,10 @@ class ConfigManager {
     }
     
     const products = [];
-    Object.keys(providerConfig.products).forEach(productKey => {
+    Object.entries(providerConfig.products).forEach(([productKey, productConfig]) => {
       products.push({
         key: productKey,
-        name: productKey
+        name: productConfig.name || productKey
       });
     });
     
