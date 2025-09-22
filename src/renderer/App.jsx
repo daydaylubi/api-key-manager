@@ -148,11 +148,30 @@ function HomePage({ onConfirm }) {
 function ConfirmPage({ env, onBack }) {
   const api = useApi();
   const [msg, setMsg] = useState('');
+  const [targets, setTargets] = useState(null);
+  const [shellCandidates, setShellCandidates] = useState([]);
+  const [selectedShellFile, setSelectedShellFile] = useState('');
+
+  useEffect(() => {
+    Promise.all([
+      api.getEnvTargetPaths(),
+      api.listShellConfigCandidates()
+    ]).then(([t, c]) => {
+      setTargets(t);
+      setShellCandidates(c);
+      const def = (c || []).find((i) => i.isDefault);
+      setSelectedShellFile(def?.file || t.shellConfigFile || '');
+    }).catch(() => {});
+  }, []);
 
   const apply = async () => {
     try {
       await api.applyEnv(env);
-      setMsg('已写入 shell 配置并保存到 ~/.api-key-manager/.env');
+      if (targets) {
+        setMsg(`已写入 shell 配置（${targets.shellConfigFile}）并保存到 ${targets.envFile}`);
+      } else {
+        setMsg('已写入 shell 配置并保存到 ~/.api-key-manager/.env');
+      }
     } catch (e) {
       setMsg(String(e));
     }
@@ -165,6 +184,36 @@ function ConfirmPage({ env, onBack }) {
           <div className="confirm-title">确认应用环境变量</div>
           {msg && <div className="subtle">{msg}</div>}
         </div>
+        {targets && (
+          <div className="subtle" style={{ marginBottom: 12 }}>
+            将写入到以下文件：
+            <div style={{ marginTop: 6 }}>
+              <div style={{ marginBottom: 6 }}>• Shell 配置文件：</div>
+              <select className="select" value={selectedShellFile}
+                onChange={async (e) => {
+                  const newFile = e.target.value;
+                  setSelectedShellFile(newFile);
+                  try {
+                    const nextTargets = await api.setShellConfigFile(newFile);
+                    setTargets(nextTargets);
+                    const nextCandidates = await api.listShellConfigCandidates();
+                    setShellCandidates(nextCandidates);
+                    setMsg('已更新 Shell 配置文件路径');
+                  } catch (err) {
+                    setMsg(String(err));
+                  }
+                }}
+              >
+                {(shellCandidates || []).map((c) => (
+                  <option key={c.file} value={c.file}>
+                    {c.file}{c.exists ? '' : '（不存在，将在需要时创建）'}{c.isDefault ? '（默认）' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ marginTop: 8 }}>• 环境变量文件：{targets.envFile}</div>
+          </div>
+        )}
         <ConfigPreview env={env} />
         <div className="confirm-actions">
           <button className="button ghost" onClick={onBack}>返回</button>

@@ -39,6 +39,18 @@ class IPCHandlers {
     ipcMain.handle('env:apply', async (_event, envMap) => {
       return this.envManager.applyEnv(envMap);
     });
+
+    ipcMain.handle('env:getTargetPaths', async () => {
+      return this.envManager.getTargetPaths();
+    });
+
+    ipcMain.handle('env:setShellConfigFile', async (_event, filePath) => {
+      return this.envManager.setShellConfigFile(filePath);
+    });
+
+    ipcMain.handle('env:listShellConfigCandidates', async () => {
+      return this.envManager.listShellConfigCandidates();
+    });
   }
 }
 

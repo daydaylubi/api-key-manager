@@ -7,7 +7,39 @@ class EnvManager {
   constructor() {
     this.envFile = path.join(os.homedir(), '.api-key-manager', '.env');
     this.blockStart = '# >>> api-key-manager >>>';
-    this.blockEnd = '# <<< api-key-manager <<<'
+    this.blockEnd = '# <<< api-key-manager <<<';
+    this.shellConfigOverrideFile = null;
+    this.defaultShellConfigFile = this.getDefaultShellConfigFile();
+  }
+
+  getTargetPaths() {
+    return {
+      envFile: this.envFile,
+      shellConfigFile: this.getShellConfigFile()
+    };
+  }
+
+  setShellConfigFile(filePath) {
+    if (typeof filePath !== 'string' || !filePath.trim()) {
+      throw new Error('无效的 Shell 配置文件路径');
+    }
+    this.shellConfigOverrideFile = filePath.trim();
+    return this.getTargetPaths();
+  }
+
+  listShellConfigCandidates() {
+    const home = os.homedir();
+    const candidates = [
+      path.join(home, '.zshrc'),
+      path.join(home, '.bashrc'),
+      path.join(home, '.bash_profile'),
+      path.join(home, '.profile')
+    ];
+    return Array.from(new Set(candidates)).map((file) => ({
+      file,
+      exists: fs.existsSync(file),
+      isDefault: file === this.defaultShellConfigFile
+    }));
   }
 
   async applyEnv(envMap) {
@@ -63,11 +95,15 @@ class EnvManager {
     fs.writeFileSync(this.envFile, content);
   }
 
-  getShellConfigFile() {
+  getDefaultShellConfigFile() {
     const shell = process.env.SHELL || '/bin/zsh';
     if (shell.includes('zsh')) return path.join(os.homedir(), '.zshrc');
     if (shell.includes('bash')) return path.join(os.homedir(), '.bashrc');
     return path.join(os.homedir(), '.profile');
+  }
+
+  getShellConfigFile() {
+    return this.shellConfigOverrideFile || this.defaultShellConfigFile;
   }
 
   async updateShellConfig(envMap) {
